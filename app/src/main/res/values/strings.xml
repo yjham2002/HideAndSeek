@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">HideAndSeek</string>
+    <string name="app_id">769139976109</string>
+    <string name="package_name">com.now.seek.and.hide.hideandseek</string>
+    <string name="achievement_starter">CgkIrc_CorEWEAIQDA</string>
+    <string name="achievement_1km">CgkIrc_CorEWEAIQAw</string>
+    <string name="achievement_2km">CgkIrc_CorEWEAIQBA</string>
+    <string name="achievement_3km">CgkIrc_CorEWEAIQBQ</string>
+    <string name="achievement_5km">CgkIrc_CorEWEAIQBg</string>
+    <string name="achievement_10km">CgkIrc_CorEWEAIQBw</string>
+    <string name="achievement_20km">CgkIrc_CorEWEAIQCA</string>
+    <string name="leaderboard_distance">CgkIrc_CorEWEAIQCw</string>
+
+    <string name="MapKey">AIzaSyB-S-TT7LoYnSA87UP27uwsLN8wtO8Tv9o</string>
+
+    <string name="SignInFailed">연결할 수 없습니다.</string>
+</resources>
