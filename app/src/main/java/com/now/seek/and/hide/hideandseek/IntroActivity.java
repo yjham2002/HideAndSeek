@@ -11,11 +11,19 @@ import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
-public class IntroActivity extends BaseActivity {
+public class IntroActivity extends BaseGameActivity {
 
     private Handler h;
     private int delayTime = 1200;
     private ImageView iv;
+
+    @Override
+    public void onSignInSucceeded(){
+    }
+
+    @Override
+    public void onSignInFailed(){
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

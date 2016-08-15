@@ -4,15 +4,23 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.TypeEvaluator;
 import android.animation.ValueAnimator;
+import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.games.Games;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -20,13 +28,17 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-public class MapActivity extends BaseActivity {
+public class MapActivity extends BaseGameActivity {
 
     public static final int COUNT_TIME = 10;
 
+    private GPSTracker mGPS;
+    private LatLng myPos, enemyPos;
     private TextView _timer;
     private CountDownTimer countDownTimer;
     private GoogleMap map;
+    private PolylineOptions myPath;
+
 
     public void toast(String msg){
         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
@@ -38,6 +50,9 @@ public class MapActivity extends BaseActivity {
         setContentView(R.layout.activity_map);
 
         _timer = (TextView)findViewById(R.id.textView);
+
+        mGPS = new GPSTracker(this);
+        enemyPos = myPos = mGPS.getLatLng();
 
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
         initMap();
@@ -57,6 +72,7 @@ public class MapActivity extends BaseActivity {
                     public void onTick(long millisUntilFinished) {
                         _timer.setText(String.valueOf((int) millisUntilFinished / 1000));
                     }
+
                     @Override
                     public void onFinish() {
                         _timer.setText("START");
@@ -80,15 +96,29 @@ public class MapActivity extends BaseActivity {
         animator.start();
     }
 
-    public void initMap(){
-        map.clear();
-        map.addMarker(new MarkerOptions().position(new LatLng(36.5, 127.0)).title("현 위치"));
-        PolylineOptions partPath = new PolylineOptions().color(getResources().getColor(R.color.colorAccent)).width(5.0f);
-        map.addPolyline(partPath);
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(36.5, 127.0), 15));
-        map.animateCamera(CameraUpdateFactory.zoomTo(12), 2000, null);
+    @Override
+    public void onSignInSucceeded(){
+        Games.setViewForPopups(getApiClient(), findViewById(R.id.gps_popup));
     }
 
+    @Override
+    public void onSignInFailed(){
+    }
+
+    public void initMap(){
+        map.clear();
+        map.addMarker(new MarkerOptions().position(myPos).title("Start Position"));
+        myPath = new PolylineOptions().color(getResources().getColor(R.color.colorAccent)).width(5.0f);
+        myPath.add(myPos);
+        map.addPolyline(myPath);
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(myPos, 15));
+        map.animateCamera(CameraUpdateFactory.zoomTo(15), 2000, null);
+    }
+
+    public void refreshMap(){
+        myPath.add(myPos);
+        map.addMarker(new MarkerOptions().position(myPos));
+    }
 
     public boolean mFlag;
 
@@ -105,10 +135,45 @@ public class MapActivity extends BaseActivity {
                 mHandler.sendEmptyMessageDelayed(0, 2000);
                 return false;
             } else {
+                mGPS.stopUsingGPS();
                 finish();
                 overridePendingTransition(R.anim.push_in_r, R.anim.push_out_r);
             }
         }
         return super.onKeyDown(keyCode, event);
     }
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()){
+                case "LOC":
+                    toast("Location Updated");
+                    myPos = mGPS.getLatLng();
+                    refreshMap();
+                    break;
+                default: break;
+            }
+        }
+    };
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter("LOC"));
+    }
+
+    @Override
+    protected void onPause() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        mGPS.stopUsingGPS();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onDestroy();
+    }
+
 }

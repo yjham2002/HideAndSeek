@@ -21,6 +21,8 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.games.Game;
 import com.google.android.gms.games.Games;
 
 public class MainActivity extends BaseGameActivity implements View.OnClickListener{
@@ -44,6 +46,7 @@ public class MainActivity extends BaseGameActivity implements View.OnClickListen
                 break;
             case R.id.bt_start:
                 if(isPermissionGranted(this)) {
+                    Games.Achievements.unlock(getApiClient(), getResources().getString(R.string.achievement_starter));
                     startActivity(new Intent(this, MapActivity.class));
                     overridePendingTransition(R.anim.push_in, R.anim.push_out);
                 }else{
@@ -89,7 +92,6 @@ public class MainActivity extends BaseGameActivity implements View.OnClickListen
         _mile.setTranslationY(_mile.getHeight());
         _mile.setAlpha(0.0f);
         _mile.setVisibility(View.INVISIBLE);
-
         requestPermit(this);
     }
 
@@ -110,6 +112,7 @@ public class MainActivity extends BaseGameActivity implements View.OnClickListen
 
     @Override
     public void onSignInSucceeded(){
+        Games.setViewForPopups(getApiClient(), findViewById(R.id.gps_popup));
         _SignInButton.animate().alpha(0.0f).translationY(_SignInButton.getHeight()).setListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
