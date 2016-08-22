@@ -5,4 +5,8 @@
     <dimen name="def_margin">15dp</dimen>
     <dimen name="main_margin">50dp</dimen>
     <dimen name="timeText">90dp</dimen>
+    <dimen name="gameState">180dp</dimen>
+    <dimen name="def_text">12dp</dimen>
+    <dimen name="def_text_mid">18dp</dimen>
+    <dimen name="def_text_large">25dp</dimen>
 </resources>

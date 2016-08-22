@@ -6,27 +6,22 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Window;
+import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
-public class IntroActivity extends BaseGameActivity {
+public class IntroActivity extends Activity {
 
     private Handler h;
     private int delayTime = 1200;
     private ImageView iv;
 
     @Override
-    public void onSignInSucceeded(){
-    }
-
-    @Override
-    public void onSignInFailed(){
-    }
-
-    @Override
     public void onCreate(Bundle savedInstanceState) {
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_intro);
 

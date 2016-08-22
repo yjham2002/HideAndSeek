@@ -34,10 +34,10 @@ public class GPSTracker extends Service implements LocationListener {
     double longitude; // Longitude
 
     // The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1; // meter
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1;
 
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 3; // milisecond
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 1;
 
     // Declaring a Location Manager
     protected LocationManager locationManager;
@@ -53,17 +53,11 @@ public class GPSTracker extends Service implements LocationListener {
 
     public Location getLocation() {
         try {
-            locationManager = (LocationManager) mContext
-                    .getSystemService(LOCATION_SERVICE);
-
+            locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
             // Getting GPS status
-            isGPSEnabled = locationManager
-                    .isProviderEnabled(LocationManager.GPS_PROVIDER);
-
+            isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             // Getting network status
-            isNetworkEnabled = locationManager
-                    .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
+            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             if (!isGPSEnabled && !isNetworkEnabled) {
                 // No network provider is enabled
             } else {
@@ -182,7 +176,9 @@ public class GPSTracker extends Service implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
         Intent intent = new Intent("LOC");
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        try{
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        }catch(Exception e){e.printStackTrace();}
     }
 
     @Override

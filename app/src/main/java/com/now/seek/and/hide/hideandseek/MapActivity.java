@@ -13,32 +13,59 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.support.v4.content.LocalBroadcastManager;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
 import com.google.android.gms.games.Games;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-public class MapActivity extends BaseGameActivity {
+import java.util.ArrayList;
+import java.util.List;
 
-    public static final int COUNT_TIME = 10;
+import util.MapUtils;
+
+public class MapActivity extends Activity implements View.OnClickListener{
+
+    public static final double enemySpeed = 0.00003;
+    public static final int COUNT_TIME = 15, ZOOM = 20;
+    public static final double THR = 10.0;
+
+    public static boolean pause = false, startGame = false;
 
     private GPSTracker mGPS;
-    private LatLng myPos, enemyPos;
-    private TextView _timer;
+    private LatLng myPos, enemyPos, startPos;
+    private TextView _timer, _remain, _run;
+    private Button _give;
     private CountDownTimer countDownTimer;
     private GoogleMap map;
-    private PolylineOptions myPath;
+    private List<LatLng> myPath, enemyPath;
+    private Polyline route, enemyRoute;
 
+    @Override
+    public void onClick(View v){
+        switch(v.getId()){
+            case R.id.bt_give:
+                gameOver();
+                break;
+            default: break;
+        }
+    }
 
     public void toast(String msg){
         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
@@ -46,16 +73,33 @@ public class MapActivity extends BaseGameActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
+        myPath = new ArrayList<>();
+        enemyPath = new ArrayList<>();
+
         _timer = (TextView)findViewById(R.id.textView);
+        _run = (TextView)findViewById(R.id.run);
+
+        _give = (Button)findViewById(R.id.bt_give);
+        _give.setOnClickListener(this);
 
         mGPS = new GPSTracker(this);
-        enemyPos = myPos = mGPS.getLatLng();
+
+        enemyPos = new LatLng(mGPS.getLatLng().latitude, mGPS.getLatLng().longitude);
+        myPos = new LatLng(mGPS.getLatLng().latitude, mGPS.getLatLng().longitude);
+        startPos = new LatLng(mGPS.getLatLng().latitude, mGPS.getLatLng().longitude);
 
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
+        _remain = (TextView)findViewById(R.id.remain);
         initMap();
+
+        AdView mAdView = (AdView)findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().addTestDevice(AdRequest.DEVICE_ID_EMULATOR).addTestDevice("FE4EB46DF11F124494E4B402287CE845").build();
+        mAdView.loadAd(adRequest);
 
         ValueAnimator animator = new ValueAnimator();
         animator.setObjectValues(0, COUNT_TIME);
@@ -81,6 +125,7 @@ public class MapActivity extends BaseGameActivity {
                             public void onAnimationEnd(Animator animation) {
                                 super.onAnimationEnd(animation);
                                 _timer.setVisibility(View.INVISIBLE);
+                                startGame = true;
                             }
                         }).setStartDelay(1000);
                     }
@@ -96,28 +141,62 @@ public class MapActivity extends BaseGameActivity {
         animator.start();
     }
 
-    @Override
-    public void onSignInSucceeded(){
-        Games.setViewForPopups(getApiClient(), findViewById(R.id.gps_popup));
+    private boolean isAccused(){
+        if(MapUtils.distBetween(myPos, enemyPos) <= THR && startGame) return true;
+        return false;
     }
 
-    @Override
-    public void onSignInFailed(){
+    public LatLng trace(LatLng current){
+        double lat = current.latitude, lng = current.longitude;
+        if(current.latitude < myPos.latitude) lat += enemySpeed;
+        else if(current.latitude > myPos.latitude) lat -= enemySpeed;
+        if(current.longitude < myPos.longitude) lng += enemySpeed;
+        else if(current.longitude > myPos.longitude) lng -= enemySpeed;
+        LatLng res = new LatLng(lat, lng);
+        return res;
+    }
+
+    public void gameOver(){
+        startGame = false;
+        pause = false;
+        mGPS.stopUsingGPS();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        Intent i = new Intent(this, GameOverActivity.class);
+        i.putExtra("distance", MapUtils.distBetween(myPos, startPos));
+        startActivity(i);
+        overridePendingTransition(R.anim.push_in, R.anim.push_out);
+        finish();
+    }
+
+    public void refreshTrace(){
+        if(isAccused()){
+            gameOver();
+        }else{
+            enemyPos = trace(enemyPos);
+            enemyPath.add(enemyPos);
+            enemyRoute.setPoints(enemyPath);
+        }
     }
 
     public void initMap(){
         map.clear();
+        map.getUiSettings().setMapToolbarEnabled(false);
         map.addMarker(new MarkerOptions().position(myPos).title("Start Position"));
-        myPath = new PolylineOptions().color(getResources().getColor(R.color.colorAccent)).width(5.0f);
         myPath.add(myPos);
-        map.addPolyline(myPath);
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(myPos, 15));
-        map.animateCamera(CameraUpdateFactory.zoomTo(15), 2000, null);
+        enemyPath.add(enemyPos);
+        enemyRoute = map.addPolyline(new PolylineOptions().color(getResources().getColor(R.color.blue)).width(70.0f));
+        route = map.addPolyline(new PolylineOptions().color(getResources().getColor(R.color.red)).width(70.0f));
+        route.setPoints(myPath);
+        enemyRoute.setPoints(enemyPath);
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(myPos, ZOOM));
+        map.animateCamera(CameraUpdateFactory.zoomTo(ZOOM), 2000, null);
     }
 
     public void refreshMap(){
+        refreshTrace();
         myPath.add(myPos);
-        map.addMarker(new MarkerOptions().position(myPos));
+        route.setPoints(myPath);
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(myPos, ZOOM));
     }
 
     public boolean mFlag;
@@ -148,7 +227,21 @@ public class MapActivity extends BaseGameActivity {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()){
                 case "LOC":
-                    toast("Location Updated");
+                    if(startGame) {
+                        _remain.setText(MapUtils.distBetween(myPos, enemyPos) + " m");
+                        _run.setText(MapUtils.distBetween(myPos, startPos) + " m");
+                        if (MapUtils.distBetween(myPos, enemyPos) <= THR * 3)
+                            _remain.setTextColor(getResources().getColor(R.color.red));
+                        else _remain.setTextColor(getResources().getColor(R.color.white));
+                    }
+                    mGPS.getLocation();
+                    if (!mGPS.isGPSEnabled) {
+                        toast("GPS를 사용하도록 설정하세요");
+                        Intent intent2 = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        intent2.addCategory(Intent.CATEGORY_DEFAULT);
+                        startActivity(intent2);
+                        pause = true;
+                    }
                     myPos = mGPS.getLatLng();
                     refreshMap();
                     break;
@@ -160,6 +253,15 @@ public class MapActivity extends BaseGameActivity {
     @Override
     public void onResume() {
         super.onResume();
+        if (!new GPSTracker(this).isGPSEnabled) {
+            toast("GPS를 사용하도록 설정하세요");
+            Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            intent.addCategory(Intent.CATEGORY_DEFAULT);
+            startActivity(intent);
+            pause = true;
+        }else{
+            pause = false;
+        }
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter("LOC"));
     }
 

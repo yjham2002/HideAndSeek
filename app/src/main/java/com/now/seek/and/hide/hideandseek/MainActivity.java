@@ -7,10 +7,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.view.KeyEvent;
@@ -43,8 +45,20 @@ public class MainActivity extends BaseGameActivity implements View.OnClickListen
                 beginUserInitiatedSignIn();
                 break;
             case R.id.bt_how:
+                toast("카운트다운과 동시에 도망가세요!\n곧 가상의 상대가 당신을 잡으러 올거예요!");
                 break;
             case R.id.bt_start:
+                if(isMockSettingsON(this)){
+                    toast("모의 위치 설정을 해제하세요");
+                    break;
+                }
+                if(!new GPSTracker(this).isGPSEnabled){
+                    Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    intent.addCategory(Intent.CATEGORY_DEFAULT);
+                    startActivity(intent);
+                    toast("GPS를 사용하도록 설정하세요");
+                    break;
+                }
                 if(isPermissionGranted(this)) {
                     Games.Achievements.unlock(getApiClient(), getResources().getString(R.string.achievement_starter));
                     startActivity(new Intent(this, MapActivity.class));
@@ -63,7 +77,14 @@ public class MainActivity extends BaseGameActivity implements View.OnClickListen
                 break;
         }
     }
-
+    public static boolean isMockSettingsON(Context context) {
+        // returns true if mock location enabled, false if not enabled.
+        if (Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ALLOW_MOCK_LOCATION).equals("0"))
+            return false;
+        else
+            return true;
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 

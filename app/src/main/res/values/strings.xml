@@ -14,4 +14,8 @@
     <string name="MapKey">AIzaSyB-S-TT7LoYnSA87UP27uwsLN8wtO8Tv9o</string>
 
     <string name="SignInFailed">연결할 수 없습니다.</string>
+    <string name="remain">Remaining Distance</string>
+    <string name="run">Distance from Start</string>
+
+    <string name="banner_ad_unit_id">ca-app-pub-8943333249977907/7476395878</string>
 </resources>
